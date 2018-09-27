@@ -4,10 +4,10 @@ def nothing(*argc, **kwargs):
         pass
 
 LOG = print
-ERROR = nothing
+ERROR = print
 
 class BirthDate():
-        def __init__(self, year, month=0, number=0):
+        def __init__(self, year, month=None, number=None):
                 self._year = year
                 self._month = month
                 self._number = number
@@ -60,6 +60,41 @@ class DistStrategy():
                 except:
                         raise TypeError("Requierd field has wrong type year : {} originalid: {}".format(year, originalid))
 
+class SchoolStrategy():
+        def __init__(self):
+                self._counter = 0
+                pass
+
+        def inc(self):
+                self._counter += 1
+                return self._counter
+
+        def __call__(self, cls, row):
+                for i in range(2):
+                        if not row[i].value:
+                                raise NameError("Requierd field not present row[{}]: {}".format(i, row[i].value))
+                cls.id = 0
+                originalid = self.inc()
+                fnp = row[0].value
+                fnp_list = [t.strip() for t in fnp.split(" ")]
+                if(len(fnp_list) != 3):
+                        raise NameError("Unexpected name {} format has len {} at {}".format(fnp, len(fnp_list), originalid))
+                cls.surname = fnp_list[0]
+                cls.name  = fnp_list[1]
+                cls.patronymic = fnp_list[2]
+                cls.group = row[1].value
+                cls.identity = row[2].value
+                cls.gender = row[3].value
+                year = row[4].value
+                cls.birt_date = BirthDate(year)
+                cls.gov = row[5].value
+                cls.school = row[6].value
+                cls.belong = row[7].value
+                cls.num_district = row[7].value
+                try:
+                        cls.id = int(int(year)*1e+6 +  int(originalid))
+                except:
+                        raise TypeError("Requierd field has wrong type year : {} originalid: {}".format(year, originalid))
 
 
 class Person():
@@ -110,7 +145,7 @@ class Person():
 class Students(list):
         def __init__(self, book, strategy=None):
                 self._book = book
-                LOG(book.rows)
+                LOG("THERE {}".format(book.rows))
                 for row in book.rows:
                         try:
                                 pr = Person(row, strategy)
@@ -130,13 +165,20 @@ class Students(list):
 def entry_point():
         wb = load_workbook('./Exel/Syxiv_2000.xlsx')
         path = "./Exel/"
-        wbs = ["Syxiv_2000.xlsx", "Syxiv_2001.xlsx", "Syxiv_2002.xlsx", "Syxiv_2003.xlsx", "Syxiv_2004.xlsx", "Syxiv_2005.xlsx", "Syxiv_2006.xlsx", "Syxiv_2007.xlsx", "Syxiv_2008.xlsx", "Syxiv_2009.xlsx", "Syxiv_2010.xlsx", "Syxiv_2011.xlsx", "Syxiv_2012.xlsx", "Syxiv_2013.xlsx"]
+        if(None):
+                wbs = ["Syxiv_2000.xlsx", "Syxiv_2001.xlsx", "Syxiv_2002.xlsx", "Syxiv_2003.xlsx", "Syxiv_2004.xlsx", "Syxiv_2005.xlsx", "Syxiv_2006.xlsx", "Syxiv_2007.xlsx", "Syxiv_2008.xlsx", "Syxiv_2009.xlsx", "Syxiv_2010.xlsx", "Syxiv_2011.xlsx", "Syxiv_2012.xlsx", "Syxiv_2013.xlsx"]
+                strategy = DistStrategy()
+        else:
+                wbs = ['town.xlsx']
+                strategy = SchoolStrategy()
+
         wbs = [load_workbook(path + i) for i in wbs]
         for wb in wbs:
                 sheets = wb.sheetnames
                 town_by_year = []
                 for sh in sheets:
-                        town_by_year.append(Students(wb[sh],DistStrategy()))
+                        town_by_year.append(Students(wb[sh], strategy))
+
 
 
 if __name__ == '__main__':
