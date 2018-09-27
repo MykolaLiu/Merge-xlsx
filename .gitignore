@@ -1,0 +1,10 @@
+*.xlsx
+*.ods
+/Exel
+/backup
+\#*
+.#*
+~*
+*~
+*.pyc
+.~*
