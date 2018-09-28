@@ -1,4 +1,4 @@
-from openpyxl import load_workbook
+from openpyxl import load_workbook, Workbook
 
 def nothing(*argc, **kwargs):
         pass
@@ -27,7 +27,16 @@ class BirthDate():
                 return self._number
 
         def __str__(self):
-                return ("{} {} {}".format(self._number, self._month, self._year))
+                if not self._number or not self._month:
+                        return "{}".format(self._year)
+                else:
+                        return "{} {} {}".format(self._number, self._month, self._year)
+
+        def __repr__(self):
+                if not self._number or not self._month:
+                        return "{}".format(self._year)
+                else:
+                        return "{} {} {}".format(self._number, self._month, self._year)
 
         def __eq__(self, lhc):
                 return lhc.year == self.year
@@ -64,6 +73,7 @@ class DistStrategy():
                         cls.id = int(int(year)*1e+6 +  int(originalid))
                 except:
                         raise TypeError("Requierd field has wrong type year : {} originalid: {}".format(year, originalid))
+                cls.linked = False
 
 class SchoolStrategy():
         def __init__(self):
@@ -118,6 +128,7 @@ class Person():
                     self.surname == lhc.surname and self.birth_date == lhc.birth_date):
                         self.school = lhc.school
                         self.linked = True
+                        lhc.linked = True
                         return True
                 else:
                         return False
@@ -125,7 +136,8 @@ class Person():
         def __str__(self):
                 formated = ""
                 for key, value in self.__dict__.items():
-                        formated += "	{}: {}\n".format(key, value)
+                        if key != row:
+                                formated += "	{}: {}\n".format(key, value)
                 return formated
 
         # @property
@@ -146,12 +158,15 @@ class Person():
 
         @property
         def dump(self):
-                return [self._id, self._name, self._surname, self._school]
+                return [str(x) for x in list(self.__dict__.values())]
 
 
 
 class Students(list):
-        def __init__(self, book, strategy=None):
+        def __init__(self, book=None, strategy=None):
+                if not book:
+                        #create empty Students class
+                        return
                 self._book = book
                 for row in book.rows:
                         try:
@@ -177,6 +192,7 @@ def process(wbs, strategy, path):
         return res
 
 
+
 def entry_point():
         wb = load_workbook('./Exel/Syxiv_2000.xlsx')
         path = "./Exel/"
@@ -190,19 +206,41 @@ def entry_point():
                 strategy = SchoolStrategy()
                 school_students = process(wbs, strategy, path)
 
+        present = []
         for students_by_school in school_students:
                 for p in students_by_school:
                         for students_by_years in town_students:
                                 if p in students_by_years:
                                         break
+
+        error_book = Workbook()
         counter = 0
         not_belong_counter = 0
+
         for students_by_school in school_students:
+                absent = Students()
+                absent_district = Students()
+                present = Students()
                 for p in students_by_school:
                         if not p.linked:
+                                absent.append(p)
                                 counter += 1
+                        else:
+                                present.append(p)
                         if not p.linked and p.belong == 'так':
+                                absent_district.append(p)
                                 not_belong_counter += 1
+
+        absent_district.sheet(error_book, "Absent without another district")
+        absent.sheet(error_book, "Total abset")
+        present.sheet(error_book, "Present")
+        error_book.save("./error_book.xlsx")
+
+        if(True):
+                wbs = ["Syxiv_2000.xlsx", "Syxiv_2001.xlsx", "Syxiv_2002.xlsx", "Syxiv_2003.xlsx", "Syxiv_2004.xlsx", "Syxiv_2005.xlsx", "Syxiv_2006.xlsx", "Syxiv_2007.xlsx", "Syxiv_2008.xlsx", "Syxiv_2009.xlsx", "Syxiv_2010.xlsx", "Syxiv_2011.xlsx", "Syxiv_2012.xlsx", "Syxiv_2013.xlsx"]
+                #wbs = wbs[:1]
+                strategy = DistStrategy()
+                town_students = process(wbs, strategy, path)
         LOG("TOTAL NOT FOUND {}".format(counter))
         LOG("TOTAL NOT WITHOUT RESIDENT FOUND {}".format(not_belong_counter))
 
